@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { and, eq, gte, lt } from "drizzle-orm"
 import { db } from "@/server/db"
 import { mealPlanEntries, recipes } from "@/server/db/schema"
-import { requireAuth } from "@/lib/auth.functions"
+import { requireAuth } from "@/lib/auth.server"
 
 // weekStart: ISO date string e.g. "2026-04-07"
 export const getMealPlan = createServerFn({ method: "GET" })

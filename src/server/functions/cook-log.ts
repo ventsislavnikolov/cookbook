@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { and, desc, eq, gte } from "drizzle-orm"
 import { db } from "@/server/db"
 import { cookLog, recipes } from "@/server/db/schema"
-import { requireAuth } from "@/lib/auth.functions"
+import { requireAuth } from "@/lib/auth.server"
 
 type LogCookInput = {
   recipeId: number

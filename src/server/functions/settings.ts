@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { eq } from "drizzle-orm"
 import { db } from "@/server/db"
 import { households } from "@/server/db/schema"
-import { requireAuth } from "@/lib/auth.functions"
+import { requireAuth } from "@/lib/auth.server"
 
 export const getHousehold = createServerFn({ method: "GET" }).handler(async () => {
   const { householdId } = await requireAuth()

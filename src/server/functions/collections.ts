@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/server/db"
 import { collections, collectionRecipes, recipes } from "@/server/db/schema"
-import { requireAuth } from "@/lib/auth.functions"
+import { requireAuth } from "@/lib/auth.server"
 
 export const getCollections = createServerFn({ method: "GET" }).handler(
   async () => {
