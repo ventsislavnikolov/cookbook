@@ -1,27 +1,12 @@
 import { createServerFn } from "@tanstack/react-start"
-import { getRequest } from "@tanstack/react-start/server"
 import { and, desc, eq, isNull, sql } from "drizzle-orm"
-import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { collections, collectionRecipes, recipes } from "@/server/db/schema"
-
-type SessionUser = {
-  id: number
-  householdId: number
-  name: string
-  email: string
-}
-
-async function requireSession() {
-  const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (!session) throw new Error("Unauthorized")
-  return session as typeof session & { user: SessionUser }
-}
+import { requireAuth } from "@/lib/auth.functions"
 
 export const getCollections = createServerFn({ method: "GET" }).handler(
   async () => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
 
     return db
       .select({
@@ -36,7 +21,7 @@ export const getCollections = createServerFn({ method: "GET" }).handler(
         collectionRecipes,
         eq(collections.id, collectionRecipes.collectionId),
       )
-      .where(eq(collections.householdId, session.user.householdId))
+      .where(eq(collections.householdId, householdId))
       .groupBy(collections.id)
       .orderBy(desc(collections.createdAt))
   },
@@ -45,12 +30,12 @@ export const getCollections = createServerFn({ method: "GET" }).handler(
 export const getCollection = createServerFn({ method: "GET" })
   .inputValidator((data: { id: number }) => data)
   .handler(async ({ data }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
 
     const collection = await db.query.collections.findFirst({
       where: and(
         eq(collections.id, data.id),
-        eq(collections.householdId, session.user.householdId),
+        eq(collections.householdId, householdId),
       ),
     })
     if (!collection) throw new Error("Collection not found")
@@ -77,12 +62,12 @@ type CollectionInput = {
 export const createCollection = createServerFn({ method: "POST" })
   .inputValidator((data: CollectionInput) => data)
   .handler(async ({ data }) => {
-    const session = await requireSession()
+    const { householdId, userId } = await requireAuth()
     const [collection] = await db
       .insert(collections)
       .values({
-        householdId: session.user.householdId,
-        createdById: session.user.id,
+        householdId,
+        createdById: userId,
         name: data.name.trim(),
         description: data.description ?? null,
       })
@@ -93,11 +78,11 @@ export const createCollection = createServerFn({ method: "POST" })
 export const updateCollection = createServerFn({ method: "POST" })
   .inputValidator((data: { id: number } & CollectionInput) => data)
   .handler(async ({ data }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     const existing = await db.query.collections.findFirst({
       where: and(
         eq(collections.id, data.id),
-        eq(collections.householdId, session.user.householdId),
+        eq(collections.householdId, householdId),
       ),
     })
     if (!existing) throw new Error("Collection not found")
@@ -111,11 +96,11 @@ export const updateCollection = createServerFn({ method: "POST" })
 export const deleteCollection = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
   .handler(async ({ data }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     const existing = await db.query.collections.findFirst({
       where: and(
         eq(collections.id, data),
-        eq(collections.householdId, session.user.householdId),
+        eq(collections.householdId, householdId),
       ),
     })
     if (!existing) throw new Error("Collection not found")
@@ -126,12 +111,12 @@ export const deleteCollection = createServerFn({ method: "POST" })
 export const addToCollection = createServerFn({ method: "POST" })
   .inputValidator((data: { collectionId: number; recipeId: number }) => data)
   .handler(async ({ data }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     // Verify both belong to this household
     const collection = await db.query.collections.findFirst({
       where: and(
         eq(collections.id, data.collectionId),
-        eq(collections.householdId, session.user.householdId),
+        eq(collections.householdId, householdId),
       ),
     })
     if (!collection) throw new Error("Collection not found")
@@ -145,7 +130,7 @@ export const addToCollection = createServerFn({ method: "POST" })
 export const removeFromCollection = createServerFn({ method: "POST" })
   .inputValidator((data: { collectionId: number; recipeId: number }) => data)
   .handler(async ({ data }) => {
-    await requireSession()
+    await requireAuth()
     await db
       .delete(collectionRecipes)
       .where(

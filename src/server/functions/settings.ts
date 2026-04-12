@@ -1,28 +1,13 @@
 import { createServerFn } from "@tanstack/react-start"
-import { getRequest } from "@tanstack/react-start/server"
 import { eq } from "drizzle-orm"
-import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { households } from "@/server/db/schema"
-
-type SessionUser = {
-  id: number
-  householdId: number
-  name: string
-  email: string
-}
-
-async function requireSession() {
-  const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (!session) throw new Error("Unauthorized")
-  return session as typeof session & { user: SessionUser }
-}
+import { requireAuth } from "@/lib/auth.functions"
 
 export const getHousehold = createServerFn({ method: "GET" }).handler(async () => {
-  const session = await requireSession()
+  const { householdId } = await requireAuth()
   const household = await db.query.households.findFirst({
-    where: eq(households.id, session.user.householdId),
+    where: eq(households.id, householdId),
   })
   if (!household) throw new Error("Household not found")
   return household
@@ -31,10 +16,10 @@ export const getHousehold = createServerFn({ method: "GET" }).handler(async () =
 export const updateHouseholdName = createServerFn({ method: "POST" })
   .inputValidator((data: { name: string }) => data)
   .handler(async ({ data }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     await db
       .update(households)
       .set({ name: data.name.trim() })
-      .where(eq(households.id, session.user.householdId))
+      .where(eq(households.id, householdId))
     return { success: true }
   })

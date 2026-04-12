@@ -1,23 +1,8 @@
 import { createServerFn } from "@tanstack/react-start"
-import { getRequest } from "@tanstack/react-start/server"
 import { and, desc, eq, ilike, isNull, isNotNull } from "drizzle-orm"
-import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { ingredients, recipes, steps } from "@/server/db/schema"
-
-type SessionUser = {
-  id: number
-  householdId: number
-  name: string
-  email: string
-}
-
-async function requireSession() {
-  const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (!session) throw new Error("Unauthorized")
-  return session as typeof session & { user: SessionUser }
-}
+import { requireAuth } from "@/lib/auth.functions"
 
 type IngredientInput = {
   name: string
@@ -98,9 +83,9 @@ type RecipeFilters = {
 export const listRecipes = createServerFn({ method: "GET" })
   .inputValidator((data: RecipeFilters) => data)
   .handler(async ({ data }: { data: RecipeFilters }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
 
-    const conditions = [eq(recipes.householdId, session.user.householdId)]
+    const conditions = [eq(recipes.householdId, householdId)]
 
     if (data.deletedOnly) {
       conditions.push(isNotNull(recipes.deletedAt))
@@ -129,11 +114,11 @@ export const listRecipes = createServerFn({ method: "GET" })
 export const getRecipe = createServerFn({ method: "GET" })
   .inputValidator((id: number) => id)
   .handler(async ({ data }: { data: number }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     const recipe = await db.query.recipes.findFirst({
       where: and(
         eq(recipes.id, data),
-        eq(recipes.householdId, session.user.householdId),
+        eq(recipes.householdId, householdId),
         isNull(recipes.deletedAt),
       ),
       with: {
@@ -155,12 +140,12 @@ export const getRecipe = createServerFn({ method: "GET" })
 export const createRecipe = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => validateRecipeInput(data))
   .handler(async ({ data }: { data: RecipeInput }) => {
-    const session = await requireSession()
+    const { householdId, userId } = await requireAuth()
     const [recipe] = await db
       .insert(recipes)
       .values({
-        householdId: session.user.householdId,
-        createdById: session.user.id,
+        householdId,
+        createdById: userId,
         title: data.title,
         description: data.description,
         prepTime: data.prepTime,
@@ -207,12 +192,12 @@ export const updateRecipe = createServerFn({ method: "POST" })
   })
   .handler(
     async ({ data }: { data: { id: number; input: RecipeInput } }) => {
-      const session = await requireSession()
+      const { householdId } = await requireAuth()
       const { id, input } = data
       const existing = await db.query.recipes.findFirst({
         where: and(
           eq(recipes.id, id),
-          eq(recipes.householdId, session.user.householdId),
+          eq(recipes.householdId, householdId),
           isNull(recipes.deletedAt),
         ),
       })
@@ -266,11 +251,11 @@ export const updateRecipe = createServerFn({ method: "POST" })
 export const deleteRecipe = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
   .handler(async ({ data }: { data: number }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     const existing = await db.query.recipes.findFirst({
       where: and(
         eq(recipes.id, data),
-        eq(recipes.householdId, session.user.householdId),
+        eq(recipes.householdId, householdId),
         isNull(recipes.deletedAt),
       ),
     })
@@ -285,11 +270,11 @@ export const deleteRecipe = createServerFn({ method: "POST" })
 export const restoreRecipe = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
   .handler(async ({ data }: { data: number }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     const existing = await db.query.recipes.findFirst({
       where: and(
         eq(recipes.id, data),
-        eq(recipes.householdId, session.user.householdId),
+        eq(recipes.householdId, householdId),
         isNotNull(recipes.deletedAt),
       ),
     })
@@ -304,11 +289,11 @@ export const restoreRecipe = createServerFn({ method: "POST" })
 export const purgeRecipe = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
   .handler(async ({ data }: { data: number }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     const existing = await db.query.recipes.findFirst({
       where: and(
         eq(recipes.id, data),
-        eq(recipes.householdId, session.user.householdId),
+        eq(recipes.householdId, householdId),
       ),
     })
     if (!existing) throw new Error("Recipe not found")
@@ -319,11 +304,11 @@ export const purgeRecipe = createServerFn({ method: "POST" })
 export const toggleFavorite = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
   .handler(async ({ data }: { data: number }) => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     const recipe = await db.query.recipes.findFirst({
       where: and(
         eq(recipes.id, data),
-        eq(recipes.householdId, session.user.householdId),
+        eq(recipes.householdId, householdId),
         isNull(recipes.deletedAt),
       ),
     })

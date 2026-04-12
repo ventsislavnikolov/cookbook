@@ -3,7 +3,7 @@ import {
   createFileRoute,
   Outlet,
   Link,
-  useNavigate,
+  redirect,
   useRouterState,
 } from "@tanstack/react-router"
 import {
@@ -35,8 +35,14 @@ import {
 } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { authClient } from "@/lib/auth-client"
+import { getSession } from "@/lib/auth.functions"
 
 export const Route = createFileRoute("/_app")({
+  beforeLoad: async () => {
+    const session = await getSession()
+    if (!session) throw redirect({ to: "/sign-in" })
+    return { session }
+  },
   component: AppLayout,
 })
 
@@ -51,20 +57,11 @@ const navItems = [
 ]
 
 function AppLayout() {
-  const { data: session, isPending } = authClient.useSession()
-  const navigate = useNavigate()
-
-  React.useEffect(() => {
-    if (!isPending && !session) {
-      navigate({ to: "/sign-in" })
-    }
-  }, [session, isPending, navigate])
-
-  if (isPending || !session) return null
+  const { session } = Route.useRouteContext()
 
   return (
     <SidebarProvider>
-      <AppSidebar user={session.user} />
+      <AppSidebar user={session} />
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />

@@ -1,27 +1,11 @@
 import { createServerFn } from "@tanstack/react-start"
-import { getRequest } from "@tanstack/react-start/server"
 import { and, count, desc, eq, gte, isNull, lt } from "drizzle-orm"
-import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { cookLog, mealPlanEntries, recipes } from "@/server/db/schema"
-
-type SessionUser = {
-  id: number
-  householdId: number
-  name: string
-  email: string
-}
-
-async function requireSession() {
-  const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (!session) throw new Error("Unauthorized")
-  return session as typeof session & { user: SessionUser }
-}
+import { requireAuth } from "@/lib/auth.functions"
 
 export const getDashboardStats = createServerFn({ method: "GET" }).handler(async () => {
-  const session = await requireSession()
-  const hid = session.user.householdId
+  const { householdId: hid } = await requireAuth()
 
   const now = new Date()
 

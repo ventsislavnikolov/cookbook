@@ -1,23 +1,8 @@
 import { createServerFn } from "@tanstack/react-start"
-import { getRequest } from "@tanstack/react-start/server"
 import { and, desc, eq, gte } from "drizzle-orm"
-import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { cookLog, recipes } from "@/server/db/schema"
-
-type SessionUser = {
-  id: number
-  householdId: number
-  name: string
-  email: string
-}
-
-async function requireSession() {
-  const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (!session) throw new Error("Unauthorized")
-  return session as typeof session & { user: SessionUser }
-}
+import { requireAuth } from "@/lib/auth.functions"
 
 type LogCookInput = {
   recipeId: number
@@ -30,13 +15,13 @@ type LogCookInput = {
 export const logCook = createServerFn({ method: "POST" })
   .inputValidator((data: LogCookInput) => data)
   .handler(async ({ data }: { data: LogCookInput }) => {
-    const session = await requireSession()
+    const { householdId, userId } = await requireAuth()
 
     // Verify recipe belongs to household
     const recipe = await db.query.recipes.findFirst({
       where: and(
         eq(recipes.id, data.recipeId),
-        eq(recipes.householdId, session.user.householdId),
+        eq(recipes.householdId, householdId),
       ),
     })
     if (!recipe) throw new Error("Recipe not found")
@@ -44,9 +29,9 @@ export const logCook = createServerFn({ method: "POST" })
     const [entry] = await db
       .insert(cookLog)
       .values({
-        householdId: session.user.householdId,
+        householdId,
         recipeId: data.recipeId,
-        cookedById: session.user.id,
+        cookedById: userId,
         cookedAt: data.cookedAt ? new Date(data.cookedAt) : new Date(),
         rating: data.rating ?? null,
         notes: data.notes ?? null,
@@ -59,9 +44,9 @@ export const logCook = createServerFn({ method: "POST" })
 
 export const getCookLog = createServerFn({ method: "GET" }).handler(
   async () => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
     return db.query.cookLog.findMany({
-      where: eq(cookLog.householdId, session.user.householdId),
+      where: eq(cookLog.householdId, householdId),
       orderBy: [desc(cookLog.cookedAt)],
       with: {
         recipe: { columns: { id: true, title: true } },
@@ -73,10 +58,10 @@ export const getCookLog = createServerFn({ method: "GET" }).handler(
 
 export const getCookingStreak = createServerFn({ method: "GET" }).handler(
   async () => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
 
     const entries = await db.query.cookLog.findMany({
-      where: eq(cookLog.householdId, session.user.householdId),
+      where: eq(cookLog.householdId, householdId),
       orderBy: [desc(cookLog.cookedAt)],
       columns: { cookedAt: true },
     })
@@ -118,7 +103,7 @@ const WEEKLY_TARGET = 5
 
 export const getWeeklyGoals = createServerFn({ method: "GET" }).handler(
   async () => {
-    const session = await requireSession()
+    const { householdId } = await requireAuth()
 
     const now = new Date()
     // Monday of this week
@@ -130,7 +115,7 @@ export const getWeeklyGoals = createServerFn({ method: "GET" }).handler(
 
     const entries = await db.query.cookLog.findMany({
       where: and(
-        eq(cookLog.householdId, session.user.householdId),
+        eq(cookLog.householdId, householdId),
         gte(cookLog.cookedAt, startOfWeek),
       ),
       columns: { id: true },
