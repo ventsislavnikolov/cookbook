@@ -16,7 +16,7 @@ export const households = pgTable("households", {
 })
 
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
@@ -30,7 +30,7 @@ export const users = pgTable("users", {
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
-  userId: integer("user_id")
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
@@ -42,8 +42,8 @@ export const sessions = pgTable("sessions", {
 })
 
 export const accounts = pgTable("accounts", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
+  id: text("id").primaryKey(),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   accountId: text("account_id").notNull(),
@@ -60,7 +60,7 @@ export const accounts = pgTable("accounts", {
 })
 
 export const verifications = pgTable("verifications", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -73,7 +73,7 @@ export const recipes = pgTable("recipes", {
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
-  createdById: integer("created_by_id")
+  createdById: text("created_by_id")
     .notNull()
     .references(() => users.id),
   title: varchar("title", { length: 255 }).notNull(),
@@ -120,7 +120,7 @@ export const collections = pgTable("collections", {
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
-  createdById: integer("created_by_id")
+  createdById: text("created_by_id")
     .notNull()
     .references(() => users.id),
   name: varchar("name", { length: 255 }).notNull(),
@@ -164,7 +164,7 @@ export const cookLog = pgTable("cook_log", {
   recipeId: integer("recipe_id")
     .notNull()
     .references(() => recipes.id, { onDelete: "cascade" }),
-  cookedById: integer("cooked_by_id")
+  cookedById: text("cooked_by_id")
     .notNull()
     .references(() => users.id),
   cookedAt: timestamp("cooked_at").defaultNow().notNull(),

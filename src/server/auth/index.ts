@@ -16,6 +16,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    additionalFields: {
+      householdId: {
+        type: "number",
+        required: false,
+        input: false,
+      },
+    },
+  },
   databaseHooks: {
     user: {
       create: {

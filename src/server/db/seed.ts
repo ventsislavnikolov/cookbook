@@ -1,4 +1,6 @@
 import "dotenv/config"
+import { randomUUID } from "crypto"
+import { sql as drizzleSql } from "drizzle-orm"
 import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-http"
 import * as schema from "./schema"
@@ -14,10 +16,23 @@ import {
   cookLog,
 } from "./schema"
 
-const sql = neon(process.env.DATABASE_URL!)
-const db = drizzle({ client: sql, schema })
+const sqlClient = neon(process.env.DATABASE_URL!)
+const db = drizzle({ client: sqlClient, schema })
+
+const RESET = process.argv.includes("--reset")
 
 async function seed() {
+  if (RESET) {
+    console.log("Resetting database…")
+    await db.execute(drizzleSql`
+      TRUNCATE cook_log, meal_plan_entries, collection_recipes,
+        collections, steps, ingredients, recipes,
+        accounts, sessions, verifications, users, households
+      RESTART IDENTITY CASCADE
+    `)
+    console.log("Tables truncated.")
+  }
+
   console.log("Seeding database…")
 
   // Household
@@ -28,17 +43,17 @@ async function seed() {
 
   console.log("Created household:", household.id)
 
-  // User (password: "password123" — bcrypt hash)
-  // Note: better-auth manages passwords; this user is for demo data only.
-  // Use the sign-up page to create a real account.
+  // Demo user — created directly, no Better Auth account.
+  // Sign up via the app UI to create a real loginable account.
   const [user] = await db
     .insert(users)
     .values({
+      id: randomUUID(),
       householdId: household.id,
       name: "Demo User",
       email: "demo@example.com",
       emailVerified: true,
-    } as any)
+    })
     .returning()
 
   console.log("Created user:", user.id)
