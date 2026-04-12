@@ -6,6 +6,7 @@
     "target": "ES2022",
     "skipLibCheck": true,
     "strictNullChecks": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
