@@ -6,3 +6,5 @@ dist
 .superpowers
 src/routeTree.gen.ts
 .vercel
+test-results/
+playwright-report/

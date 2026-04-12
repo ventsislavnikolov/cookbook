@@ -72,6 +72,9 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
     devDependencies:
+      '@playwright/test':
+        specifier: ^1.59.1
+        version: 1.59.1
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -978,6 +981,11 @@ packages:
 
   '@oxc-project/types@0.124.0':
     resolution: {integrity: sha1-Hf17P7uY/rwvkbUF9IyUDbc8hwE=}
+
+  '@playwright/test@1.59.1':
+    resolution: {integrity: sha1-XE046shKYVJ69GZgKuICd2haAtY=}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@reduxjs/toolkit@2.11.2':
     resolution: {integrity: sha1-WCIlrOpWcynKaEhYPn3XJYDTjoI=}
@@ -2141,6 +2149,11 @@ packages:
     resolution: {integrity: sha1-q2k07Ki89vf2uCdC4zWR+GMB1vw=}
     engines: {node: '>=14.14'}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha1-ilJveLj99GI7cJ4Ll1xSwkwC/Ro=}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha1-ysZAd4XQNnWipeGlMFxpezR9kNY=}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -2775,6 +2788,16 @@ packages:
   pkce-challenge@5.0.1:
     resolution: {integrity: sha1-O0RGhlsXsXRems4gFqMfSN32Iw0=}
     engines: {node: '>=16.20.0'}
+
+  playwright-core@1.59.1:
+    resolution: {integrity: sha1-2KKyi8uPK9CO89+TsCroPIEyRLI=}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.59.1:
+    resolution: {integrity: sha1-97DKYWN64lJkzsNw32cbvh82iko=}
+    engines: {node: '>=18'}
+    hasBin: true
 
   postcss-selector-parser@7.1.1:
     resolution: {integrity: sha1-510uDYQ/Yg5d9pB2Fm9OFviRy58=}
@@ -4131,6 +4154,10 @@ snapshots:
 
   '@oxc-project/types@0.124.0': {}
 
+  '@playwright/test@1.59.1':
+    dependencies:
+      playwright: 1.59.1
+
   '@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.5)(redux@5.0.1))(react@19.2.5)':
     dependencies:
       '@standard-schema/spec': 1.1.0
@@ -5208,6 +5235,9 @@ snapshots:
       jsonfile: 6.2.0
       universalify: 2.0.1
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -5751,6 +5781,14 @@ snapshots:
   picomatch@4.0.4: {}
 
   pkce-challenge@5.0.1: {}
+
+  playwright-core@1.59.1: {}
+
+  playwright@1.59.1:
+    dependencies:
+      playwright-core: 1.59.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   postcss-selector-parser@7.1.1:
     dependencies:
