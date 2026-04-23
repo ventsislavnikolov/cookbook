@@ -1,12 +1,11 @@
 import "dotenv/config"
-import { randomUUID } from "crypto"
 import { sql as drizzleSql } from "drizzle-orm"
 import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-http"
 import * as schema from "./schema"
 import {
   households,
-  users,
+  userProfiles,
   recipes,
   ingredients,
   steps,
@@ -27,7 +26,7 @@ async function seed() {
     await db.execute(drizzleSql`
       TRUNCATE cook_log, meal_plan_entries, collection_recipes,
         collections, steps, ingredients, recipes,
-        accounts, sessions, verifications, users, households
+        user_profiles, households
       RESTART IDENTITY CASCADE
     `)
     console.log("Tables truncated.")
@@ -43,20 +42,25 @@ async function seed() {
 
   console.log("Created household:", household.id)
 
-  // Demo user — created directly, no Better Auth account.
-  // Sign up via the app UI to create a real loginable account.
-  const [user] = await db
-    .insert(users)
+  // Demo profile — keyed to a real Neon Auth user the developer has signed up.
+  // Set SEED_USER_ID to the Neon user id (from neon_auth."user".id).
+  const seedUserId = process.env.SEED_USER_ID
+  if (!seedUserId) {
+    throw new Error(
+      'SEED_USER_ID is required. Sign up via the app UI once, then copy the id from neon_auth."user".',
+    )
+  }
+
+  const [profile] = await db
+    .insert(userProfiles)
     .values({
-      id: randomUUID(),
+      userId: seedUserId,
       householdId: household.id,
-      name: "Demo User",
-      email: "demo@example.com",
-      emailVerified: true,
     })
     .returning()
 
-  console.log("Created user:", user.id)
+  console.log("Created profile for user:", profile.userId)
+  const user = { id: seedUserId } // preserve the name used downstream
 
   // Recipes
   const recipeData = [
