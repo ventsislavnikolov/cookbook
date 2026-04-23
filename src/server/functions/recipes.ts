@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { and, desc, eq, ilike, isNull, isNotNull } from "drizzle-orm"
 import { db } from "@/server/db"
 import { ingredients, recipes, steps } from "@/server/db/schema"
-import { requireAuth } from "@/lib/auth.server"
+import { withProfile } from "@/server/profile"
 
 type IngredientInput = {
   name: string
@@ -82,149 +82,86 @@ type RecipeFilters = {
 
 export const listRecipes = createServerFn({ method: "GET" })
   .inputValidator((data: RecipeFilters) => data)
-  .handler(async ({ data }: { data: RecipeFilters }) => {
-    const { householdId } = await requireAuth()
+  .handler(({ data }: { data: RecipeFilters }) =>
+    withProfile(async ({ householdId }) => {
+      const conditions = [eq(recipes.householdId, householdId)]
 
-    const conditions = [eq(recipes.householdId, householdId)]
+      if (data.deletedOnly) {
+        conditions.push(isNotNull(recipes.deletedAt))
+      } else if (!data.includeDeleted) {
+        conditions.push(isNull(recipes.deletedAt))
+      }
+      if (data.search) {
+        conditions.push(ilike(recipes.title, `%${data.search}%`))
+      }
+      if (data.cuisine) {
+        conditions.push(eq(recipes.cuisine, data.cuisine))
+      }
+      if (data.difficulty) {
+        conditions.push(eq(recipes.difficulty, data.difficulty))
+      }
+      if (data.favoritesOnly) {
+        conditions.push(eq(recipes.isFavorite, true))
+      }
 
-    if (data.deletedOnly) {
-      conditions.push(isNotNull(recipes.deletedAt))
-    } else if (!data.includeDeleted) {
-      conditions.push(isNull(recipes.deletedAt))
-    }
-    if (data.search) {
-      conditions.push(ilike(recipes.title, `%${data.search}%`))
-    }
-    if (data.cuisine) {
-      conditions.push(eq(recipes.cuisine, data.cuisine))
-    }
-    if (data.difficulty) {
-      conditions.push(eq(recipes.difficulty, data.difficulty))
-    }
-    if (data.favoritesOnly) {
-      conditions.push(eq(recipes.isFavorite, true))
-    }
-
-    return db.query.recipes.findMany({
-      where: and(...conditions),
-      orderBy: [desc(recipes.updatedAt)],
-    })
-  })
+      return db.query.recipes.findMany({
+        where: and(...conditions),
+        orderBy: [desc(recipes.updatedAt)],
+      })
+    }),
+  )
 
 export const getRecipe = createServerFn({ method: "GET" })
   .inputValidator((id: number) => id)
-  .handler(async ({ data }: { data: number }) => {
-    const { householdId } = await requireAuth()
-    const recipe = await db.query.recipes.findFirst({
-      where: and(
-        eq(recipes.id, data),
-        eq(recipes.householdId, householdId),
-        isNull(recipes.deletedAt),
-      ),
-      with: {
-        ingredients: true,
-        steps: true,
-        createdBy: { columns: { id: true, name: true, email: true } },
-      },
-    })
-    if (!recipe) throw new Error("Recipe not found")
-    return {
-      ...recipe,
-      ingredients: [...recipe.ingredients].sort(
-        (a, b) => a.orderIndex - b.orderIndex,
-      ),
-      steps: [...recipe.steps].sort((a, b) => a.stepNumber - b.stepNumber),
-    }
-  })
-
-export const createRecipe = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => validateRecipeInput(data))
-  .handler(async ({ data }: { data: RecipeInput }) => {
-    const { householdId, userId } = await requireAuth()
-    const [recipe] = await db
-      .insert(recipes)
-      .values({
-        householdId,
-        createdById: userId,
-        title: data.title,
-        description: data.description,
-        prepTime: data.prepTime,
-        cookTime: data.cookTime,
-        servings: data.servings,
-        difficulty: data.difficulty,
-        cuisine: data.cuisine,
-        tags: data.tags,
-      })
-      .returning()
-
-    if (data.ingredients.length > 0) {
-      await db.insert(ingredients).values(
-        data.ingredients.map((i: IngredientInput, idx: number) => ({
-          recipeId: recipe.id,
-          name: i.name,
-          quantity: i.quantity,
-          unit: i.unit,
-          notes: i.notes,
-          orderIndex: idx,
-        })),
-      )
-    }
-
-    if (data.steps.length > 0) {
-      await db.insert(steps).values(
-        data.steps.map((s: StepInput, idx: number) => ({
-          recipeId: recipe.id,
-          stepNumber: idx + 1,
-          instruction: s.instruction,
-          duration: s.duration,
-        })),
-      )
-    }
-
-    return recipe
-  })
-
-export const updateRecipe = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => {
-    const d = data as { id: unknown } & Record<string, unknown>
-    if (typeof d.id !== "number") throw new Error("Invalid id")
-    return { id: d.id, input: validateRecipeInput(data) }
-  })
-  .handler(
-    async ({ data }: { data: { id: number; input: RecipeInput } }) => {
-      const { householdId } = await requireAuth()
-      const { id, input } = data
-      const existing = await db.query.recipes.findFirst({
+  .handler(({ data }: { data: number }) =>
+    withProfile(async ({ householdId }) => {
+      const recipe = await db.query.recipes.findFirst({
         where: and(
-          eq(recipes.id, id),
+          eq(recipes.id, data),
           eq(recipes.householdId, householdId),
           isNull(recipes.deletedAt),
         ),
+        with: {
+          ingredients: true,
+          steps: true,
+          createdBy: { columns: { id: true, name: true, email: true } },
+        },
       })
-      if (!existing) throw new Error("Recipe not found")
+      if (!recipe) throw new Error("Recipe not found")
+      return {
+        ...recipe,
+        ingredients: [...recipe.ingredients].sort(
+          (a, b) => a.orderIndex - b.orderIndex,
+        ),
+        steps: [...recipe.steps].sort((a, b) => a.stepNumber - b.stepNumber),
+      }
+    }),
+  )
 
-      await db
-        .update(recipes)
-        .set({
-          title: input.title,
-          description: input.description,
-          prepTime: input.prepTime,
-          cookTime: input.cookTime,
-          servings: input.servings,
-          difficulty: input.difficulty,
-          cuisine: input.cuisine,
-          tags: input.tags,
-          updatedAt: new Date(),
+export const createRecipe = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => validateRecipeInput(data))
+  .handler(({ data }: { data: RecipeInput }) =>
+    withProfile(async ({ householdId, userId }) => {
+      const [recipe] = await db
+        .insert(recipes)
+        .values({
+          householdId,
+          createdById: userId,
+          title: data.title,
+          description: data.description,
+          prepTime: data.prepTime,
+          cookTime: data.cookTime,
+          servings: data.servings,
+          difficulty: data.difficulty,
+          cuisine: data.cuisine,
+          tags: data.tags,
         })
-        .where(eq(recipes.id, id))
+        .returning()
 
-      await db.delete(ingredients).where(eq(ingredients.recipeId, id))
-      await db.delete(steps).where(eq(steps.recipeId, id))
-
-      if (input.ingredients.length > 0) {
+      if (data.ingredients.length > 0) {
         await db.insert(ingredients).values(
-          input.ingredients.map((i: IngredientInput, idx: number) => ({
-            recipeId: id,
+          data.ingredients.map((i: IngredientInput, idx: number) => ({
+            recipeId: recipe.id,
             name: i.name,
             quantity: i.quantity,
             unit: i.unit,
@@ -233,10 +170,11 @@ export const updateRecipe = createServerFn({ method: "POST" })
           })),
         )
       }
-      if (input.steps.length > 0) {
+
+      if (data.steps.length > 0) {
         await db.insert(steps).values(
-          input.steps.map((s: StepInput, idx: number) => ({
-            recipeId: id,
+          data.steps.map((s: StepInput, idx: number) => ({
+            recipeId: recipe.id,
             stepNumber: idx + 1,
             instruction: s.instruction,
             duration: s.duration,
@@ -244,81 +182,149 @@ export const updateRecipe = createServerFn({ method: "POST" })
         )
       }
 
-      return { id }
-    },
+      return recipe
+    }),
+  )
+
+export const updateRecipe = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => {
+    const d = data as { id: unknown } & Record<string, unknown>
+    if (typeof d.id !== "number") throw new Error("Invalid id")
+    return { id: d.id, input: validateRecipeInput(data) }
+  })
+  .handler(
+    ({ data }: { data: { id: number; input: RecipeInput } }) =>
+      withProfile(async ({ householdId }) => {
+        const { id, input } = data
+        const existing = await db.query.recipes.findFirst({
+          where: and(
+            eq(recipes.id, id),
+            eq(recipes.householdId, householdId),
+            isNull(recipes.deletedAt),
+          ),
+        })
+        if (!existing) throw new Error("Recipe not found")
+
+        await db
+          .update(recipes)
+          .set({
+            title: input.title,
+            description: input.description,
+            prepTime: input.prepTime,
+            cookTime: input.cookTime,
+            servings: input.servings,
+            difficulty: input.difficulty,
+            cuisine: input.cuisine,
+            tags: input.tags,
+            updatedAt: new Date(),
+          })
+          .where(eq(recipes.id, id))
+
+        await db.delete(ingredients).where(eq(ingredients.recipeId, id))
+        await db.delete(steps).where(eq(steps.recipeId, id))
+
+        if (input.ingredients.length > 0) {
+          await db.insert(ingredients).values(
+            input.ingredients.map((i: IngredientInput, idx: number) => ({
+              recipeId: id,
+              name: i.name,
+              quantity: i.quantity,
+              unit: i.unit,
+              notes: i.notes,
+              orderIndex: idx,
+            })),
+          )
+        }
+        if (input.steps.length > 0) {
+          await db.insert(steps).values(
+            input.steps.map((s: StepInput, idx: number) => ({
+              recipeId: id,
+              stepNumber: idx + 1,
+              instruction: s.instruction,
+              duration: s.duration,
+            })),
+          )
+        }
+
+        return { id }
+      }),
   )
 
 export const deleteRecipe = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
-  .handler(async ({ data }: { data: number }) => {
-    const { householdId } = await requireAuth()
-    const existing = await db.query.recipes.findFirst({
-      where: and(
-        eq(recipes.id, data),
-        eq(recipes.householdId, householdId),
-        isNull(recipes.deletedAt),
-      ),
-    })
-    if (!existing) throw new Error("Recipe not found")
-    await db
-      .update(recipes)
-      .set({ deletedAt: new Date() })
-      .where(eq(recipes.id, data))
-    return { id: data }
-  })
+  .handler(({ data }: { data: number }) =>
+    withProfile(async ({ householdId }) => {
+      const existing = await db.query.recipes.findFirst({
+        where: and(
+          eq(recipes.id, data),
+          eq(recipes.householdId, householdId),
+          isNull(recipes.deletedAt),
+        ),
+      })
+      if (!existing) throw new Error("Recipe not found")
+      await db
+        .update(recipes)
+        .set({ deletedAt: new Date() })
+        .where(eq(recipes.id, data))
+      return { id: data }
+    }),
+  )
 
 export const restoreRecipe = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
-  .handler(async ({ data }: { data: number }) => {
-    const { householdId } = await requireAuth()
-    const existing = await db.query.recipes.findFirst({
-      where: and(
-        eq(recipes.id, data),
-        eq(recipes.householdId, householdId),
-        isNotNull(recipes.deletedAt),
-      ),
-    })
-    if (!existing) throw new Error("Recipe not found")
-    await db
-      .update(recipes)
-      .set({ deletedAt: null, updatedAt: new Date() })
-      .where(eq(recipes.id, data))
-    return { id: data }
-  })
+  .handler(({ data }: { data: number }) =>
+    withProfile(async ({ householdId }) => {
+      const existing = await db.query.recipes.findFirst({
+        where: and(
+          eq(recipes.id, data),
+          eq(recipes.householdId, householdId),
+          isNotNull(recipes.deletedAt),
+        ),
+      })
+      if (!existing) throw new Error("Recipe not found")
+      await db
+        .update(recipes)
+        .set({ deletedAt: null, updatedAt: new Date() })
+        .where(eq(recipes.id, data))
+      return { id: data }
+    }),
+  )
 
 export const purgeRecipe = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
-  .handler(async ({ data }: { data: number }) => {
-    const { householdId } = await requireAuth()
-    const existing = await db.query.recipes.findFirst({
-      where: and(
-        eq(recipes.id, data),
-        eq(recipes.householdId, householdId),
-      ),
-    })
-    if (!existing) throw new Error("Recipe not found")
-    await db.delete(recipes).where(eq(recipes.id, data))
-    return { id: data }
-  })
+  .handler(({ data }: { data: number }) =>
+    withProfile(async ({ householdId }) => {
+      const existing = await db.query.recipes.findFirst({
+        where: and(
+          eq(recipes.id, data),
+          eq(recipes.householdId, householdId),
+        ),
+      })
+      if (!existing) throw new Error("Recipe not found")
+      await db.delete(recipes).where(eq(recipes.id, data))
+      return { id: data }
+    }),
+  )
 
 export const toggleFavorite = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
-  .handler(async ({ data }: { data: number }) => {
-    const { householdId } = await requireAuth()
-    const recipe = await db.query.recipes.findFirst({
-      where: and(
-        eq(recipes.id, data),
-        eq(recipes.householdId, householdId),
-        isNull(recipes.deletedAt),
-      ),
-    })
-    if (!recipe) throw new Error("Recipe not found")
-    await db
-      .update(recipes)
-      .set({ isFavorite: !recipe.isFavorite, updatedAt: new Date() })
-      .where(eq(recipes.id, data))
-    return { id: data, isFavorite: !recipe.isFavorite }
-  })
+  .handler(({ data }: { data: number }) =>
+    withProfile(async ({ householdId }) => {
+      const recipe = await db.query.recipes.findFirst({
+        where: and(
+          eq(recipes.id, data),
+          eq(recipes.householdId, householdId),
+          isNull(recipes.deletedAt),
+        ),
+      })
+      if (!recipe) throw new Error("Recipe not found")
+      await db
+        .update(recipes)
+        .set({ isFavorite: !recipe.isFavorite, updatedAt: new Date() })
+        .where(eq(recipes.id, data))
+      return { id: data, isFavorite: !recipe.isFavorite }
+    }),
+  )
 
 export type RecipeListItem = Awaited<ReturnType<typeof listRecipes>>[number]
 export type RecipeDetail = Awaited<ReturnType<typeof getRecipe>>

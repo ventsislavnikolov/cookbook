@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { and, desc, eq, gte } from "drizzle-orm"
 import { db } from "@/server/db"
 import { cookLog, recipes } from "@/server/db/schema"
-import { requireAuth } from "@/lib/auth.server"
+import { withProfile } from "@/server/profile"
 
 type LogCookInput = {
   recipeId: number
@@ -14,37 +14,36 @@ type LogCookInput = {
 
 export const logCook = createServerFn({ method: "POST" })
   .inputValidator((data: LogCookInput) => data)
-  .handler(async ({ data }: { data: LogCookInput }) => {
-    const { householdId, userId } = await requireAuth()
-
-    // Verify recipe belongs to household
-    const recipe = await db.query.recipes.findFirst({
-      where: and(
-        eq(recipes.id, data.recipeId),
-        eq(recipes.householdId, householdId),
-      ),
-    })
-    if (!recipe) throw new Error("Recipe not found")
-
-    const [entry] = await db
-      .insert(cookLog)
-      .values({
-        householdId,
-        recipeId: data.recipeId,
-        cookedById: userId,
-        cookedAt: data.cookedAt ? new Date(data.cookedAt) : new Date(),
-        rating: data.rating ?? null,
-        notes: data.notes ?? null,
-        servings: data.servings ?? null,
+  .handler(({ data }: { data: LogCookInput }) =>
+    withProfile(async ({ householdId, userId }) => {
+      // Verify recipe belongs to household
+      const recipe = await db.query.recipes.findFirst({
+        where: and(
+          eq(recipes.id, data.recipeId),
+          eq(recipes.householdId, householdId),
+        ),
       })
-      .returning()
+      if (!recipe) throw new Error("Recipe not found")
 
-    return entry
-  })
+      const [entry] = await db
+        .insert(cookLog)
+        .values({
+          householdId,
+          recipeId: data.recipeId,
+          cookedById: userId,
+          cookedAt: data.cookedAt ? new Date(data.cookedAt) : new Date(),
+          rating: data.rating ?? null,
+          notes: data.notes ?? null,
+          servings: data.servings ?? null,
+        })
+        .returning()
 
-export const getCookLog = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const { householdId } = await requireAuth()
+      return entry
+    }),
+  )
+
+export const getCookLog = createServerFn({ method: "GET" }).handler(() =>
+  withProfile(async ({ householdId }) => {
     return db.query.cookLog.findMany({
       where: eq(cookLog.householdId, householdId),
       orderBy: [desc(cookLog.cookedAt)],
@@ -53,13 +52,11 @@ export const getCookLog = createServerFn({ method: "GET" }).handler(
         cookedBy: { columns: { id: true, name: true } },
       },
     })
-  },
+  }),
 )
 
-export const getCookingStreak = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const { householdId } = await requireAuth()
-
+export const getCookingStreak = createServerFn({ method: "GET" }).handler(() =>
+  withProfile(async ({ householdId }) => {
     const entries = await db.query.cookLog.findMany({
       where: eq(cookLog.householdId, householdId),
       orderBy: [desc(cookLog.cookedAt)],
@@ -96,15 +93,13 @@ export const getCookingStreak = createServerFn({ method: "GET" }).handler(
     }
 
     return { streak }
-  },
+  }),
 )
 
 const WEEKLY_TARGET = 5
 
-export const getWeeklyGoals = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const { householdId } = await requireAuth()
-
+export const getWeeklyGoals = createServerFn({ method: "GET" }).handler(() =>
+  withProfile(async ({ householdId }) => {
     const now = new Date()
     // Monday of this week
     const startOfWeek = new Date(now)
@@ -130,7 +125,7 @@ export const getWeeklyGoals = createServerFn({ method: "GET" }).handler(
         100,
       ),
     }
-  },
+  }),
 )
 
 export type CookLogEntry = Awaited<ReturnType<typeof getCookLog>>[number]
