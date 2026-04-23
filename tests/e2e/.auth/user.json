@@ -1,14 +1,14 @@
 {
   "cookies": [
     {
-      "name": "better-auth.session_token",
-      "value": "MudUzHqVmqfsgFnryR1NYtM5gMxPr49U.0DPrGdNvz5tKmgtolKUC%2Fk%2Fh2FUXc6RjDuccSNJdq0k%3D",
+      "name": "__Secure-neon-auth.session_token",
+      "value": "uiVCvxU1HBDkHJjw8TbrtRcNGHjkLa7P.O%2FwSRcpOAb%2Fzz0IMAabZGZuJNmSXWvxi6qBz2XcJuYc%3D",
       "domain": "localhost",
       "path": "/",
-      "expires": 1776591671.724,
+      "expires": -1,
       "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
+      "secure": true,
+      "sameSite": "None"
     }
   ],
   "origins": []
