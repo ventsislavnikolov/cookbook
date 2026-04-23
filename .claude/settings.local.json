@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rg -l \"rounded-\\(sm|md|lg|xl|2xl|3xl|full\\)|bg-\\\\[|text-\\\\[|#[0-9a-fA-F]{3,6}|rounded-\\\\[\" src/)"
+    ]
+  }
+}
