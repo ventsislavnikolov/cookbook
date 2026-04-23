@@ -2,92 +2,95 @@ import { createServerFn } from "@tanstack/react-start"
 import { and, eq, gte, lt } from "drizzle-orm"
 import { db } from "@/server/db"
 import { mealPlanEntries, recipes } from "@/server/db/schema"
-import { requireAuth } from "@/lib/auth.server"
+import { withProfile } from "@/server/profile"
 
 // weekStart: ISO date string e.g. "2026-04-07"
 export const getMealPlan = createServerFn({ method: "GET" })
   .inputValidator((data: { weekStart: string }) => data)
-  .handler(async ({ data }) => {
-    const { householdId } = await requireAuth()
-    const start = new Date(data.weekStart)
-    const end = new Date(start)
-    end.setDate(end.getDate() + 7)
+  .handler(({ data }) =>
+    withProfile(async ({ householdId }) => {
+      const start = new Date(data.weekStart)
+      const end = new Date(start)
+      end.setDate(end.getDate() + 7)
 
-    return db
-      .select({
-        id: mealPlanEntries.id,
-        plannedDate: mealPlanEntries.plannedDate,
-        mealType: mealPlanEntries.mealType,
-        servings: mealPlanEntries.servings,
-        notes: mealPlanEntries.notes,
-        recipe: {
-          id: recipes.id,
-          title: recipes.title,
-          cuisine: recipes.cuisine,
-          difficulty: recipes.difficulty,
-        },
-      })
-      .from(mealPlanEntries)
-      .innerJoin(recipes, eq(mealPlanEntries.recipeId, recipes.id))
-      .where(
-        and(
-          eq(mealPlanEntries.householdId, householdId),
-          gte(mealPlanEntries.plannedDate, start),
-          lt(mealPlanEntries.plannedDate, end),
-        ),
-      )
-  })
+      return db
+        .select({
+          id: mealPlanEntries.id,
+          plannedDate: mealPlanEntries.plannedDate,
+          mealType: mealPlanEntries.mealType,
+          servings: mealPlanEntries.servings,
+          notes: mealPlanEntries.notes,
+          recipe: {
+            id: recipes.id,
+            title: recipes.title,
+            cuisine: recipes.cuisine,
+            difficulty: recipes.difficulty,
+          },
+        })
+        .from(mealPlanEntries)
+        .innerJoin(recipes, eq(mealPlanEntries.recipeId, recipes.id))
+        .where(
+          and(
+            eq(mealPlanEntries.householdId, householdId),
+            gte(mealPlanEntries.plannedDate, start),
+            lt(mealPlanEntries.plannedDate, end),
+          ),
+        )
+    }),
+  )
 
 export const setMealPlanEntry = createServerFn({ method: "POST" })
   .inputValidator((data: { plannedDate: string; mealType: string; recipeId: number }) => data)
-  .handler(async ({ data }) => {
-    const { householdId } = await requireAuth()
-    const plannedDate = new Date(data.plannedDate)
-    const dayEnd = new Date(plannedDate)
-    dayEnd.setDate(dayEnd.getDate() + 1)
+  .handler(({ data }) =>
+    withProfile(async ({ householdId }) => {
+      const plannedDate = new Date(data.plannedDate)
+      const dayEnd = new Date(plannedDate)
+      dayEnd.setDate(dayEnd.getDate() + 1)
 
-    const existing = await db.query.mealPlanEntries.findFirst({
-      where: and(
-        eq(mealPlanEntries.householdId, householdId),
-        gte(mealPlanEntries.plannedDate, plannedDate),
-        lt(mealPlanEntries.plannedDate, dayEnd),
-        eq(mealPlanEntries.mealType, data.mealType),
-      ),
-    })
-
-    if (existing) {
-      await db
-        .update(mealPlanEntries)
-        .set({ recipeId: data.recipeId })
-        .where(eq(mealPlanEntries.id, existing.id))
-      return { id: existing.id }
-    }
-
-    const [entry] = await db
-      .insert(mealPlanEntries)
-      .values({
-        householdId,
-        recipeId: data.recipeId,
-        plannedDate,
-        mealType: data.mealType,
+      const existing = await db.query.mealPlanEntries.findFirst({
+        where: and(
+          eq(mealPlanEntries.householdId, householdId),
+          gte(mealPlanEntries.plannedDate, plannedDate),
+          lt(mealPlanEntries.plannedDate, dayEnd),
+          eq(mealPlanEntries.mealType, data.mealType),
+        ),
       })
-      .returning()
-    return { id: entry.id }
-  })
+
+      if (existing) {
+        await db
+          .update(mealPlanEntries)
+          .set({ recipeId: data.recipeId })
+          .where(eq(mealPlanEntries.id, existing.id))
+        return { id: existing.id }
+      }
+
+      const [entry] = await db
+        .insert(mealPlanEntries)
+        .values({
+          householdId,
+          recipeId: data.recipeId,
+          plannedDate,
+          mealType: data.mealType,
+        })
+        .returning()
+      return { id: entry.id }
+    }),
+  )
 
 export const clearMealPlanEntry = createServerFn({ method: "POST" })
   .inputValidator((id: number) => id)
-  .handler(async ({ data }) => {
-    const { householdId } = await requireAuth()
-    await db
-      .delete(mealPlanEntries)
-      .where(
-        and(
-          eq(mealPlanEntries.id, data),
-          eq(mealPlanEntries.householdId, householdId),
-        ),
-      )
-    return { id: data }
-  })
+  .handler(({ data }) =>
+    withProfile(async ({ householdId }) => {
+      await db
+        .delete(mealPlanEntries)
+        .where(
+          and(
+            eq(mealPlanEntries.id, data),
+            eq(mealPlanEntries.householdId, householdId),
+          ),
+        )
+      return { id: data }
+    }),
+  )
 
 export type MealPlanEntry = Awaited<ReturnType<typeof getMealPlan>>[number]

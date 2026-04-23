@@ -15,6 +15,7 @@ function SignUpPage() {
   const [name, setName] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
+  const [confirmPassword, setConfirmPassword] = React.useState("")
   const [error, setError] = React.useState("")
   const [loading, setLoading] = React.useState(false)
 
@@ -27,6 +28,10 @@ function SignUpPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
     setLoading(true)
     const { error } = await authClient.signUp.email({ name, email, password })
     setLoading(false)
@@ -89,6 +94,21 @@ function SignUpPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="confirmPassword" className="text-sm font-medium">
+              Confirm password
+            </label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"

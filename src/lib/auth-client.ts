@@ -1,5 +1,11 @@
-import { createAuthClient } from "better-auth/react"
+import { createAuthClient } from "@neondatabase/neon-js/auth"
+import { BetterAuthReactAdapter } from "@neondatabase/neon-js/auth/react"
 
-export const authClient = createAuthClient({
-  baseURL: import.meta.env.VITE_BETTER_AUTH_URL ?? "http://localhost:3000",
+const baseUrl = import.meta.env.VITE_NEON_AUTH_URL
+if (!baseUrl) {
+  throw new Error("VITE_NEON_AUTH_URL is not set")
+}
+
+export const authClient = createAuthClient(baseUrl, {
+  adapter: BetterAuthReactAdapter(),
 })

@@ -6,8 +6,12 @@ import {
   serial,
   text,
   timestamp,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core"
+import { neonUser } from "./neon-auth-schema"
+
+export { neonUser }
 
 export const households = pgTable("households", {
   id: serial("id").primaryKey(),
@@ -15,57 +19,12 @@ export const households = pgTable("households", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
-export const users = pgTable("users", {
-  id: text("id").primaryKey(),
+export const userProfiles = pgTable("user_profiles", {
+  userId: uuid("user_id").primaryKey(),
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  emailVerified: boolean("email_verified").default(false).notNull(),
-  image: text("image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
-
-export const sessions = pgTable("sessions", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  token: text("token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
-
-export const accounts = pgTable("accounts", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  accountId: text("account_id").notNull(),
-  providerId: text("provider_id").notNull(),
-  accessToken: text("access_token"),
-  refreshToken: text("refresh_token"),
-  accessTokenExpiresAt: timestamp("access_token_expires_at"),
-  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-  scope: text("scope"),
-  idToken: text("id_token"),
-  password: text("password"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
-
-export const verifications = pgTable("verifications", {
-  id: text("id").primaryKey(),
-  identifier: text("identifier").notNull(),
-  value: text("value").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
 export const recipes = pgTable("recipes", {
@@ -73,9 +32,7 @@ export const recipes = pgTable("recipes", {
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
-  createdById: text("created_by_id")
-    .notNull()
-    .references(() => users.id),
+  createdById: uuid("created_by_id").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
@@ -120,9 +77,7 @@ export const collections = pgTable("collections", {
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
-  createdById: text("created_by_id")
-    .notNull()
-    .references(() => users.id),
+  createdById: uuid("created_by_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
@@ -164,9 +119,7 @@ export const cookLog = pgTable("cook_log", {
   recipeId: integer("recipe_id")
     .notNull()
     .references(() => recipes.id, { onDelete: "cascade" }),
-  cookedById: text("cooked_by_id")
-    .notNull()
-    .references(() => users.id),
+  cookedById: uuid("cooked_by_id").notNull(),
   cookedAt: timestamp("cooked_at").defaultNow().notNull(),
   rating: integer("rating"),
   notes: text("notes"),
@@ -176,36 +129,21 @@ export const cookLog = pgTable("cook_log", {
 // Relations
 
 export const householdsRelations = relations(households, ({ many }) => ({
-  users: many(users),
+  profiles: many(userProfiles),
   recipes: many(recipes),
   collections: many(collections),
   mealPlanEntries: many(mealPlanEntries),
   cookLog: many(cookLog),
 }))
 
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
   household: one(households, {
-    fields: [users.householdId],
+    fields: [userProfiles.householdId],
     references: [households.id],
   }),
-  sessions: many(sessions),
-  accounts: many(accounts),
-  recipes: many(recipes),
-  collections: many(collections),
-  cookLog: many(cookLog),
-}))
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [sessions.userId],
-    references: [users.id],
-  }),
-}))
-
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, {
-    fields: [accounts.userId],
-    references: [users.id],
+  user: one(neonUser, {
+    fields: [userProfiles.userId],
+    references: [neonUser.id],
   }),
 }))
 
@@ -214,9 +152,9 @@ export const recipesRelations = relations(recipes, ({ one, many }) => ({
     fields: [recipes.householdId],
     references: [households.id],
   }),
-  createdBy: one(users, {
+  createdBy: one(neonUser, {
     fields: [recipes.createdById],
-    references: [users.id],
+    references: [neonUser.id],
   }),
   ingredients: many(ingredients),
   steps: many(steps),
@@ -244,9 +182,9 @@ export const collectionsRelations = relations(collections, ({ one, many }) => ({
     fields: [collections.householdId],
     references: [households.id],
   }),
-  createdBy: one(users, {
+  createdBy: one(neonUser, {
     fields: [collections.createdById],
-    references: [users.id],
+    references: [neonUser.id],
   }),
   collectionRecipes: many(collectionRecipes),
 }))
@@ -288,8 +226,8 @@ export const cookLogRelations = relations(cookLog, ({ one }) => ({
     fields: [cookLog.recipeId],
     references: [recipes.id],
   }),
-  cookedBy: one(users, {
+  cookedBy: one(neonUser, {
     fields: [cookLog.cookedById],
-    references: [users.id],
+    references: [neonUser.id],
   }),
 }))

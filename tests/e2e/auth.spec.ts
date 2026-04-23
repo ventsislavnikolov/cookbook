@@ -34,7 +34,7 @@ test("sign-in with wrong password shows error", async ({ page }) => {
   await page.getByLabel("Email").fill("nobody@example.com")
   await page.getByLabel("Password").fill("wrongpassword")
   await page.getByRole("button", { name: "Sign in" }).click()
-  await expect(page.locator(".text-destructive")).toBeVisible({ timeout: 5000 })
+  await expect(page.locator(".text-destructive")).toBeVisible({ timeout: 15000 })
 })
 
 test("sign-in page links to sign-up", async ({ page }) => {
