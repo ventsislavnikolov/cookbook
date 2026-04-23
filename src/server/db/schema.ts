@@ -6,6 +6,7 @@ import {
   serial,
   text,
   timestamp,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core"
 import { neonUser } from "./neon-auth-schema"
@@ -19,7 +20,7 @@ export const households = pgTable("households", {
 })
 
 export const userProfiles = pgTable("user_profiles", {
-  userId: text("user_id").primaryKey(),
+  userId: uuid("user_id").primaryKey(),
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
@@ -31,7 +32,7 @@ export const recipes = pgTable("recipes", {
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
-  createdById: text("created_by_id").notNull(),
+  createdById: uuid("created_by_id").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
@@ -76,7 +77,7 @@ export const collections = pgTable("collections", {
   householdId: integer("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
-  createdById: text("created_by_id").notNull(),
+  createdById: uuid("created_by_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
@@ -118,7 +119,7 @@ export const cookLog = pgTable("cook_log", {
   recipeId: integer("recipe_id")
     .notNull()
     .references(() => recipes.id, { onDelete: "cascade" }),
-  cookedById: text("cooked_by_id").notNull(),
+  cookedById: uuid("cooked_by_id").notNull(),
   cookedAt: timestamp("cooked_at").defaultNow().notNull(),
   rating: integer("rating"),
   notes: text("notes"),
