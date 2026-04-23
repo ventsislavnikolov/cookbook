@@ -35,11 +35,11 @@ import {
 } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { authClient } from "@/lib/auth-client"
-import { getSession } from "@/lib/auth.functions"
+import { getAppSession } from "@/server/functions/session"
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
-    const session = await getSession()
+    const session = await getAppSession()
     if (!session) throw redirect({ to: "/sign-in" })
     return { session }
   },
@@ -75,7 +75,7 @@ function AppLayout() {
   )
 }
 
-function AppSidebar({ user }: { user: { name: string; email: string } }) {
+function AppSidebar({ user }: { user: { name: string | null; email: string | null } }) {
   const { location } = useRouterState()
   const pathname = location.pathname
 
