@@ -28,12 +28,12 @@ function SignInPage() {
     setError("")
     setLoading(true)
     const { error } = await authClient.signIn.email({ email, password })
-    setLoading(false)
     if (error) {
       setError(error.message ?? "Sign in failed")
-    } else {
-      navigate({ to: "/" })
+      setLoading(false)
+      return
     }
+    await navigate({ to: "/" })
   }
 
   return (
