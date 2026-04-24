@@ -21,11 +21,24 @@ async function proxy({
 
   const incomingUrl = new URL(request.url)
   const suffix = params._splat ?? ""
-  const targetUrl = `${target.replace(/\/$/, "")}/${suffix}${incomingUrl.search}`
+  const targetBase = target.replace(/\/$/, "")
+  const targetUrl = `${targetBase}/${suffix}${incomingUrl.search}`
+  const targetOrigin = new URL(targetBase).origin
 
   const forwardHeaders = new Headers(request.headers)
   forwardHeaders.delete("host")
   forwardHeaders.delete("content-length")
+  forwardHeaders.delete("x-forwarded-host")
+  forwardHeaders.delete("x-forwarded-proto")
+  forwardHeaders.delete("x-forwarded-for")
+  forwardHeaders.delete("x-real-ip")
+  forwardHeaders.delete("x-vercel-deployment-url")
+  forwardHeaders.delete("x-vercel-forwarded-for")
+  forwardHeaders.delete("x-vercel-id")
+  forwardHeaders.set("origin", targetOrigin)
+  if (forwardHeaders.has("referer")) {
+    forwardHeaders.set("referer", targetOrigin + "/")
+  }
 
   const init: RequestInit = {
     method: request.method,
