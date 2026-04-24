@@ -188,7 +188,7 @@ function RecipeDetailPage() {
             title={recipe.isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <HeartIcon
-              className={`size-4 ${recipe.isFavorite ? "fill-red-500 text-red-500" : ""}`}
+              className={`size-4 ${recipe.isFavorite ? "fill-primary text-primary" : ""}`}
             />
           </Button>
           <Button variant="outline" onClick={() => setEditing(true)}>

@@ -62,9 +62,9 @@ function TrashPage() {
       </div>
 
       {expiringSoon.length > 0 && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950">
-          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p className="text-amber-800 dark:text-amber-300">
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+          <p>
             {expiringSoon.length}{" "}
             {expiringSoon.length === 1 ? "recipe is" : "recipes are"} approaching
             the 30-day limit and will be permanently deleted soon.
@@ -102,7 +102,7 @@ function TrashPage() {
                       </CardTitle>
                       {deletedAt && (
                         <p
-                          className={`mt-1 text-xs ${isExpiring ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
+                          className={`mt-1 text-xs ${isExpiring ? "text-destructive" : "text-muted-foreground"}`}
                         >
                           Deleted {daysAgo === 0 ? "today" : `${daysAgo}d ago`}
                           {daysLeft != null &&

@@ -142,11 +142,11 @@ function RecipesIndex() {
                     <button
                       type="button"
                       onClick={(e) => handleToggleFavorite(e, recipe.id)}
-                      className="shrink-0 text-muted-foreground transition-colors hover:text-red-500"
+                      className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
                       title={recipe.isFavorite ? "Remove from favorites" : "Add to favorites"}
                     >
                       <HeartIcon
-                        className={`size-4 ${recipe.isFavorite ? "fill-red-500 text-red-500" : ""}`}
+                        className={`size-4 ${recipe.isFavorite ? "fill-primary text-primary" : ""}`}
                       />
                     </button>
                   </div>

@@ -54,10 +54,10 @@ function FavoritesPage() {
                     <button
                       type="button"
                       onClick={(e) => handleToggleFavorite(e, recipe.id)}
-                      className="shrink-0 text-red-500 transition-colors hover:text-muted-foreground"
+                      className="shrink-0 text-primary transition-colors hover:text-muted-foreground"
                       title="Remove from favorites"
                     >
-                      <HeartIcon className="size-4 fill-red-500" />
+                      <HeartIcon className="size-4 fill-current" />
                     </button>
                   </div>
                   {recipe.description && (
