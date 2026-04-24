@@ -206,7 +206,7 @@ function CookLogPage() {
                     {entry.recipe.title}
                   </Link>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span>{entry.cookedBy.name}</span>
+                    {entry.cookedBy && <span>{entry.cookedBy.name}</span>}
                     {entry.servings && <span>{entry.servings} servings</span>}
                   </div>
                   {entry.notes && (
