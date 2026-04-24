@@ -63,8 +63,8 @@ function StarRating({
           onClick={() => onChange(value === n ? null : n)}
           className={`transition-colors ${
             value !== null && n <= value
-              ? "text-yellow-400"
-              : "text-muted-foreground hover:text-yellow-300"
+              ? "text-primary"
+              : "text-muted-foreground hover:text-primary/70"
           }`}
         >
           <StarIcon
@@ -150,7 +150,7 @@ function CookLogPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <FlameIcon className="size-4 text-orange-500" />
+              <FlameIcon className="size-4 text-primary" />
               Cooking streak
             </CardTitle>
           </CardHeader>
@@ -220,7 +220,7 @@ function CookLogPage() {
                         <StarIcon
                           key={n}
                           className={`size-3.5 ${
-                            n <= (entry.rating ?? 0) ? "text-yellow-400" : "text-muted-foreground/30"
+                            n <= (entry.rating ?? 0) ? "text-primary" : "text-muted-foreground/30"
                           }`}
                           fill={n <= (entry.rating ?? 0) ? "currentColor" : "none"}
                         />
