@@ -34,13 +34,19 @@ async function seed() {
 
   console.log("Seeding database…")
 
-  // Household
-  const [household] = await db
+  // Households
+  const createdHouseholds = await db
     .insert(households)
-    .values({ name: "The Nikolov Kitchen" })
+    .values([
+      { name: "The Nikolov Kitchen" },
+      { name: "The Petrov Family" },
+      { name: "Shared Flat 4B" },
+      { name: "Weekend Cottage" },
+    ])
     .returning()
 
-  console.log("Created household:", household.id)
+  const household = createdHouseholds[0]
+  console.log("Created households:", createdHouseholds.length)
 
   // Demo profile — keyed to a real Neon Auth user the developer has signed up.
   // Set SEED_USER_ID to the Neon user id (from neon_auth."user".id).
@@ -285,16 +291,42 @@ async function seed() {
     })
     .returning()
 
+  const [vegetarianCollection] = await db
+    .insert(collections)
+    .values({
+      householdId: household.id,
+      createdById: user.id,
+      name: "Vegetarian Favourites",
+      description: "Meat-free meals worth making again",
+    })
+    .returning()
+
+  const [bakingCollection] = await db
+    .insert(collections)
+    .values({
+      householdId: household.id,
+      createdById: user.id,
+      name: "Baking & Sweets",
+      description: "Sweet treats and baked goods",
+    })
+    .returning()
+
   // Assign recipes to collections
   const carbonara = createdRecipes.find((r) => r.title === "Spaghetti Carbonara")!
   const tikka = createdRecipes.find((r) => r.title === "Chicken Tikka Masala")!
   const risotto = createdRecipes.find((r) => r.title === "Mushroom Risotto")!
+  const salad = createdRecipes.find((r) => r.title === "Simple Green Salad")!
+  const bananaBread = createdRecipes.find((r) => r.title === "Banana Bread")!
 
   await db.insert(collectionRecipes).values([
     { collectionId: weeknightCollection.id, recipeId: tikka.id },
     { collectionId: weeknightCollection.id, recipeId: carbonara.id },
     { collectionId: italianCollection.id, recipeId: carbonara.id },
     { collectionId: italianCollection.id, recipeId: risotto.id },
+    { collectionId: vegetarianCollection.id, recipeId: risotto.id },
+    { collectionId: vegetarianCollection.id, recipeId: salad.id },
+    { collectionId: vegetarianCollection.id, recipeId: bananaBread.id },
+    { collectionId: bakingCollection.id, recipeId: bananaBread.id },
   ])
 
   console.log("Created collections with recipes")
@@ -331,33 +363,58 @@ async function seed() {
       plannedDate: addDays(monday, 4),
       mealType: "dinner",
     },
+    {
+      householdId: household.id,
+      recipeId: salad.id,
+      plannedDate: addDays(monday, 3),
+      mealType: "lunch",
+    },
   ])
 
   console.log("Created meal plan entries")
 
   // Cook log
-  const threeDaysAgo = new Date()
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
+  const daysAgo = (n: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() - n)
+    return d
+  }
 
   await db.insert(cookLog).values([
     {
       householdId: household.id,
       recipeId: carbonara.id,
       cookedById: user.id,
-      cookedAt: threeDaysAgo,
+      cookedAt: daysAgo(8),
       rating: 5,
       notes: "Perfect every time. Used guanciale from the deli.",
       servings: 4,
     },
     {
       householdId: household.id,
+      recipeId: bananaBread.id,
+      cookedById: user.id,
+      cookedAt: daysAgo(5),
+      rating: 4,
+      notes: "Added walnuts — lovely texture.",
+      servings: 8,
+    },
+    {
+      householdId: household.id,
       recipeId: tikka.id,
       cookedById: user.id,
-      cookedAt: yesterday,
+      cookedAt: daysAgo(3),
       rating: 4,
-      notes: "Really good! Added a bit more chilli next time.",
+      notes: "Really good! Add a bit more chilli next time.",
+      servings: 4,
+    },
+    {
+      householdId: household.id,
+      recipeId: risotto.id,
+      cookedById: user.id,
+      cookedAt: daysAgo(1),
+      rating: 5,
+      notes: "Mixed chestnut and chanterelle mushrooms — excellent.",
       servings: 4,
     },
   ])
