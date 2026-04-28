@@ -9,3 +9,8 @@ src/routeTree.gen.ts
 test-results/
 playwright-report/
 .claude/
+
+.env*
+.flaskenv*
+!.env.project
+!.env.vault
