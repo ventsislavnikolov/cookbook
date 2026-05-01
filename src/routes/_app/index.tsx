@@ -8,10 +8,12 @@ import {
   FlameIcon,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DashboardSkeleton } from "@/components/skeletons/dashboard"
 import { getDashboardStats } from "@/server/functions/dashboard"
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
+  pendingComponent: DashboardSkeleton,
   loader: () => getDashboardStats(),
 })
 

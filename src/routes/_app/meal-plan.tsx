@@ -17,6 +17,7 @@ import {
   type MealPlanEntry,
 } from "@/server/functions/meal-plan"
 import { listRecipes } from "@/server/functions/recipes"
+import { MealPlanSkeleton } from "@/components/skeletons/meal-plan"
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const
 type MealType = (typeof MEAL_TYPES)[number]
@@ -51,6 +52,7 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 export const Route = createFileRoute("/_app/meal-plan")({
   component: MealPlanPage,
+  pendingComponent: MealPlanSkeleton,
   loader: () => {
     const weekStart = getMonday(new Date())
     return getMealPlan({ data: { weekStart: toDateString(weekStart) } })

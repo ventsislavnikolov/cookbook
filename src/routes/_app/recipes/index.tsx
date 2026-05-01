@@ -12,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { RecipeGridSkeleton } from "@/components/skeletons/recipe-grid"
 import { listRecipes, toggleFavorite } from "@/server/functions/recipes"
 
 export const Route = createFileRoute("/_app/recipes/")({
   component: RecipesIndex,
+  pendingComponent: () => <RecipeGridSkeleton />,
   loader: () => listRecipes({ data: {} }),
 })
 

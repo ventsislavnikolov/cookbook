@@ -41,9 +41,11 @@ import {
   type RecipeDetail,
 } from "@/server/functions/recipes"
 import { logCook } from "@/server/functions/cook-log"
+import { RecipeDetailSkeleton } from "@/components/skeletons/recipe-detail"
 
 export const Route = createFileRoute("/_app/recipes/$recipeId")({
   component: RecipeDetailPage,
+  pendingComponent: RecipeDetailSkeleton,
   loader: ({ params }) => getRecipe({ data: Number(params.recipeId) }),
 })
 

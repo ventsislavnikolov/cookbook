@@ -24,9 +24,11 @@ import {
 } from "@/components/ui/alert-dialog"
 import { getCollection, addToCollection, removeFromCollection } from "@/server/functions/collections"
 import { listRecipes } from "@/server/functions/recipes"
+import { CollectionDetailSkeleton } from "@/components/skeletons/collection-detail"
 
 export const Route = createFileRoute("/_app/collections/$collectionId")({
   component: CollectionDetailPage,
+  pendingComponent: CollectionDetailSkeleton,
   loader: ({ params }) => getCollection({ data: { id: Number(params.collectionId) } }),
 })
 

@@ -30,9 +30,11 @@ import {
   deleteCollection,
   type CollectionListItem,
 } from "@/server/functions/collections"
+import { CollectionsSkeleton } from "@/components/skeletons/collections"
 
 export const Route = createFileRoute("/_app/collections/")({
   component: CollectionsIndex,
+  pendingComponent: CollectionsSkeleton,
   loader: () => getCollections(),
 })
 

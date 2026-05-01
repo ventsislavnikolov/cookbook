@@ -20,9 +20,11 @@ import {
   type CookLogEntry,
 } from "@/server/functions/cook-log"
 import { listRecipes } from "@/server/functions/recipes"
+import { CookLogSkeleton } from "@/components/skeletons/cook-log"
 
 export const Route = createFileRoute("/_app/cook-log")({
   component: CookLogPage,
+  pendingComponent: CookLogSkeleton,
   loader: () =>
     Promise.all([getCookLog(), getCookingStreak(), getWeeklyGoals()]).then(
       ([entries, streak, goals]) => ({ entries, streak, goals }),

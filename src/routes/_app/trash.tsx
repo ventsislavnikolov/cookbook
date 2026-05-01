@@ -15,11 +15,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { listRecipes, restoreRecipe, purgeRecipe } from "@/server/functions/recipes"
+import { TrashSkeleton } from "@/components/skeletons/trash"
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 
 export const Route = createFileRoute("/_app/trash")({
   component: TrashPage,
+  pendingComponent: TrashSkeleton,
   loader: () => listRecipes({ data: { deletedOnly: true } }),
 })
 

@@ -2,10 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { ClockIcon, UsersIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { RecipeGridSkeleton } from "@/components/skeletons/recipe-grid"
 import { listRecipes } from "@/server/functions/recipes"
 
 export const Route = createFileRoute("/_app/recent")({
   component: RecentPage,
+  pendingComponent: () => <RecipeGridSkeleton showAction={false} showFilters={false} />,
   loader: () => listRecipes({ data: {} }),
 })
 

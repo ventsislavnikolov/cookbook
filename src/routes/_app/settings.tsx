@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { authClient } from "@/lib/auth-client"
 import { getHousehold, updateHouseholdName } from "@/server/functions/settings"
+import { SettingsSkeleton } from "@/components/skeletons/settings"
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
+  pendingComponent: SettingsSkeleton,
   loader: () => getHousehold(),
 })
 
