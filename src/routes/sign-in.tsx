@@ -27,13 +27,26 @@ function SignInPage() {
     e.preventDefault()
     setError("")
     setLoading(true)
-    const { error } = await authClient.signIn.email({ email, password })
-    if (error) {
-      setError(error.message ?? "Sign in failed")
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out. Please try again.")), 15000),
+    )
+
+    try {
+      const result = await Promise.race([
+        authClient.signIn.email({ email, password }),
+        timeout,
+      ])
+      if (result.error) {
+        setError(result.error.message ?? `Sign in failed (${result.error.status ?? "unknown"})`)
+        return
+      }
+      await navigate({ to: "/" })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign in failed")
+    } finally {
       setLoading(false)
-      return
     }
-    await navigate({ to: "/" })
   }
 
   return (
